@@ -15,11 +15,14 @@ import javafx.stage.Stage;
 import org.apache.commons.io.FileUtils;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class FolderSizer extends Application {
 
@@ -33,7 +36,7 @@ public class FolderSizer extends Application {
     TableColumn<Folder, String> columnSize = new TableColumn<>("Size MB");
     columnName.setCellValueFactory(new PropertyValueFactory<>("Name"));
     columnSize.setCellValueFactory(new PropertyValueFactory<>("Size"));
-    tblItems.getColumns().addAll(columnName, columnSize);
+    tblItems.getColumns().addAll(List.of(columnName, columnSize));
 
     TextField textField = new TextField();
     textField.setPromptText("Put a path here");
@@ -44,19 +47,7 @@ public class FolderSizer extends Application {
       if (!path.isEmpty()) {
         tblItems.getItems().clear();
         Path folder = Paths.get(path);
-        List<Folder> folderList = new ArrayList<>();
-        try {
-          Files.walk(folder, 1)
-                  .filter(p -> p.toFile().isDirectory())
-                  .filter(p -> !p.toFile().getName().equals(folder.getFileName().toString()))
-                  .forEach(p -> {
-                    Long dirSize = FileUtils.sizeOfDirectory(p.toFile()) / 1024 / 1024;
-                    String dirName = p.toFile().getName();
-                    folderList.add(new Folder(dirName, dirSize));
-                  });
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
+        List<Folder> folderList = readFiles(folder);
         tblItems.getItems().addAll(folderList);
       }
     });
@@ -74,6 +65,25 @@ public class FolderSizer extends Application {
     stage.setTitle("Folder size");
     stage.setScene(scene);
     stage.show();
+  }
+
+  private static List<Folder> readFiles(Path folder) {
+    List<Folder> folderList;
+    try (Stream<Path> stream = Files.walk(folder, 1)) {
+      folderList = stream.filter(p -> p.toFile().isDirectory())
+              .filter(p -> !p.toFile().getName().equals(folder.getFileName().toString()))
+              .map(FolderSizer::createFolder)
+              .toList();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+    return folderList;
+  }
+
+  private static Folder createFolder(Path p) {
+    Long dirSize = FileUtils.sizeOfDirectory(p.toFile()) / 1024 / 1024;
+    String dirName = p.toFile().getName();
+    return new Folder(dirName, dirSize);
   }
 
   public static void main(String[] args) {
