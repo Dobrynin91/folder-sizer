@@ -5,9 +5,12 @@ public class Folder {
   private String name;
   private Long size;
 
-  public Folder(String name, Long size) {
+  private String type;
+
+  public Folder(String name, Long size, String folderType) {
     this.name = name;
     this.size = size;
+    this.type = folderType;
   }
 
   public Folder() {
@@ -27,5 +30,13 @@ public class Folder {
 
   public void setSize(Long size) {
     this.size = size;
+  }
+
+  public String getType() {
+    return type;
+  }
+
+  public void setType(String type) {
+    this.type = type;
   }
 }

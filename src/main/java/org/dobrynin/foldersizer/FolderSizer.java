@@ -14,14 +14,13 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.apache.commons.io.FileUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class FolderSizer extends Application {
@@ -34,9 +33,11 @@ public class FolderSizer extends Application {
     tblItems.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
     TableColumn<Folder, String> columnName = new TableColumn<>("Name");
     TableColumn<Folder, String> columnSize = new TableColumn<>("Size MB");
+    TableColumn<Folder, String> columnType = new TableColumn<>("Type");
     columnName.setCellValueFactory(new PropertyValueFactory<>("Name"));
     columnSize.setCellValueFactory(new PropertyValueFactory<>("Size"));
-    tblItems.getColumns().addAll(List.of(columnName, columnSize));
+    columnType.setCellValueFactory(new PropertyValueFactory<>("Type"));
+    tblItems.getColumns().addAll(List.of(columnName, columnSize, columnType));
 
     TextField textField = new TextField();
     textField.setPromptText("Put a path here");
@@ -70,7 +71,7 @@ public class FolderSizer extends Application {
   private static List<Folder> readFiles(Path folder) {
     List<Folder> folderList;
     try (Stream<Path> stream = Files.walk(folder, 1)) {
-      folderList = stream.filter(p -> p.toFile().isDirectory())
+      folderList = stream
               .filter(p -> !p.toFile().getName().equals(folder.getFileName().toString()))
               .map(FolderSizer::createFolder)
               .toList();
@@ -81,9 +82,11 @@ public class FolderSizer extends Application {
   }
 
   private static Folder createFolder(Path p) {
-    Long dirSize = FileUtils.sizeOfDirectory(p.toFile()) / 1024 / 1024;
-    String dirName = p.toFile().getName();
-    return new Folder(dirName, dirSize);
+    File file = p.toFile();
+    String dirName = file.getName();
+    Long dirSize = FileUtils.sizeOf(file) / 1024 / 1024;
+    String dirType = file.isDirectory() ? "Folder" : "File";
+    return new Folder(dirName, dirSize, dirType);
   }
 
   public static void main(String[] args) {
